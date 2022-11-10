@@ -65,30 +65,43 @@ const getAPublishedBlog = async (req, res) => {
 
 const createBlog = async (req, res) => {
   const body = req.body;
-  const blog = await BlogModel.create({
-    title: body.title,
-    description: body.description,
-    author: req.id,
-    state: "draft",
-    read_count: 0,
-    reading_time: calculateReadingTime(body.body.length),
-    tags: body.tags,
-    body: body.body,
-  });
+  try {
+    const blog = await BlogModel.create({
+      title: body.title,
+      description: body.description,
+      author: req.id,
+      state: "draft",
+      read_count: 0,
+      reading_time: calculateReadingTime(body.body.length),
+      tags: body.tags,
+      body: body.body,
+    });
 
-  return res.status(201).json({ success: true, data: blog });
+    return res.status(201).json({ success: true, data: blog });
+  } catch (err) {}
 };
 
 const publishBlog = async (req, res) => {
   const { id } = req.params;
-  const update = await BlogModel.updateOne({ _id: id }, { state: "published" });
-  return res.status(200).json({ success: true, data: update });
+  try {
+    const update = await BlogModel.updateOne(
+      { _id: id },
+      { state: "published" }
+    );
+    return res.status(200).json({ success: true, data: update });
+  } catch (err) {}
 };
 
 const deleteBlog = async (req, res) => {
   const { id } = req.params;
-  await BlogModel.deleteOne({ _id: id });
-  return res.status(200).json({ success: true, message: "Blog deleted" });
+  try {
+    await BlogModel.deleteOne({ _id: id });
+    return res.status(200).json({ success: true, message: "Blog deleted" });
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ error: err, message: "Something went wrong" });
+  }
 };
 
 const getUserBlogs = async (req, res) => {
@@ -96,24 +109,30 @@ const getUserBlogs = async (req, res) => {
   const perpage = query.perpage || 10;
   const page = Math.max(0, query.page || 0);
   let blogs;
-  if (query.state) {
-    blogs = await BlogModel.find({ state: query.state })
-      .populate({
-        path: "author",
-        _id: req.id,
-      })
-      .limit(perpage)
-      .skip(perpage * page);
-  } else {
-    blogs = await BlogModel.find({})
-      .populate({
-        path: "author",
-        _id: req.id,
-      })
-      .limit(perpage)
-      .skip(perpage * page);
+  try {
+    if (query.state) {
+      blogs = await BlogModel.find({ state: query.state })
+        .populate({
+          path: "author",
+          _id: req.id,
+        })
+        .limit(perpage)
+        .skip(perpage * page);
+    } else {
+      blogs = await BlogModel.find({})
+        .populate({
+          path: "author",
+          _id: req.id,
+        })
+        .limit(perpage)
+        .skip(perpage * page);
+    }
+    return res.status(200).json({ success: true, data: blogs });
+  } catch (err) {
+    return res
+    .status(500)
+    .json({ error: err, message: "Something went wrong" });
   }
-  return res.status(200).json({ success: true, data: blogs });
 };
 module.exports = {
   createBlog,
